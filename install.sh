@@ -10,6 +10,33 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# Parse arguments
+FONT_SIZE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  -font)
+    if [[ -z "${2:-}" ]]; then
+      echo "Error: -font requires a font size." >&2
+      echo "Usage: sudo ./Install.sh [-font SIZE]" >&2
+      exit 1
+    fi
+    FONT_SIZE="$2"
+    shift 2
+    ;;
+  -h | --help)
+    echo "Usage: sudo ./Install.sh [-font SIZE]"
+    echo "  -font SIZE  Set the font size in points."
+    exit 0
+    ;;
+  *)
+    echo "Unknown argument: $1" >&2
+    echo "Usage: sudo ./Install.sh [-font SIZE]" >&2
+    exit 1
+    ;;
+  esac
+done
+
 # Theme name
 THEME_NAME=minimal
 
@@ -21,7 +48,7 @@ echo "-----------------------------------" >&2
 printf "\n"
 tput sgr0
 
-# Grub directory check
+# GRUB directory check
 GRUB_DIR=/boot/grub2
 if [[ ! -d "$GRUB_DIR" ]]; then
   GRUB_DIR=/boot/grub
@@ -35,7 +62,7 @@ if [[ ! -d "$GRUB_DIR" ]]; then
   fi
 fi
 
-# Grub-mkconfig command check
+# GRUB-mkconfig command check
 GRUB_MKCONFIG=grub2-mkconfig
 if ! command -v "$GRUB_MKCONFIG" >/dev/null 2>&1; then
   GRUB_MKCONFIG=grub-mkconfig
@@ -49,17 +76,25 @@ if ! command -v "$GRUB_MKCONFIG" >/dev/null 2>&1; then
   fi
 fi
 
-# Font size input validation
-printf "\n"
-read -r -p "Enter your desired font size (points): " FONT_SIZE
-printf "\n"
+# Ask for font size if not provided
+if [[ -z "$FONT_SIZE" ]]; then
+  printf "\n"
+  read -r -p "Enter your desired font size (points): " FONT_SIZE
+  printf "\n"
+fi
 
+# Font size validation
 if ! [[ "$FONT_SIZE" =~ ^[1-9][0-9]*$|^0$ ]]; then
   tput setaf 1
   printf "\n"
-  echo "Invalid input. Please enter a valid number in points." >&2
+  echo "Invalid font size. Please enter a positive integer." >&2
   printf "\n"
   tput sgr0
+  exit 1
+fi
+
+if ((FONT_SIZE < 1)); then
+  echo "Font size must be greater than zero." >&2
   exit 1
 fi
 
